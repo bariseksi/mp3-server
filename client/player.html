@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+   <meta charset="UTF-8" />
+   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+   <title>MP3 Player</title>
+   <style>
+      .wrapper {
+         height: 100%;
+         width: 100%;
+         background-color: darkslategray;
+      }
+
+      .header {
+         position: absolute;
+         top: 0px;
+         left: 0px;
+         height: 120px;
+         right: 0px;
+         overflow: hidden;
+         background-color: darkslategray;
+      }
+
+      .con {
+         position: absolute;
+         top: 120px;
+         bottom: 0px;
+         left: 0px;
+         right: 0px;
+         overflow: auto;
+      }
+
+      h3 {
+         overflow: hidden;
+         font-family: Arial;
+         color: white;
+         text-overflow: ellipsis;
+         white-space: nowrap;
+         left: 10px;
+         top: 0px;
+         position: absolute;
+         vertical-align: middle;
+      }
+
+      button {
+         float: left;
+         background-color: Transparent;
+         background-repeat: no-repeat;
+         border: none;
+         cursor: pointer;
+         overflow: hidden;
+         outline: none;
+         transform: translateY(10%);
+      }
+
+      .innerDiv {
+         overflow: hidden;
+         text-overflow: ellipsis;
+         font-family: Arial;
+         white-space: nowrap;
+         text-align: left;
+         vertical-align: middle;
+         line-height: 50px;
+      }
+
+      .outterDiv {
+         overflow: hidden;
+         width: 100%;
+         background: #323232;
+         color: #cacaca;
+         height: 50px;
+         border-top: 1px solid darkgrey;
+      }
+   </style>
+</head>
+
+<body>
+   <div class="wrapper">
+      <div class="header">
+         <h3 id="songInfo">Now Playing...</h3>
+         <audio controls preload="metadata" id="audioPlayer" ; style="
+                  width: calc(100% - 20px);
+                  color: blueviolet;
+                  left: 10px;
+                  right: 10px;
+                  top: 50px;
+                  position: absolute;
+                  height: 30px;
+               " onended="trackEnded()"></audio>
+         <button id="backButton" style="
+                  position: absolute;
+                  font-size: medium;
+                  color: yellow;
+                  top: 90px;
+               ">
+            Show Playlists
+         </button>
+      </div>
+      <div class="con" id="divContainer"></div>
+   </div>
+</body>
+<script>
+   const player = document.getElementById("audioPlayer");
+   player.addEventListener("canplay", (X) => {
+      player.play();
+   });
+   const backButton = document.getElementById("backButton");
+   backButton.addEventListener("click", (X) => {
+      displayPlaylists(playlists);
+   });
+
+   let currentTrack = undefined;
+   let previousTrack = undefined;
+   let playlists = [];
+   let selectedPlaylistID = -1;//0 is a playlist actually
+   let que = [];
+   let queNumber = 0;
+
+   const Http = new XMLHttpRequest();
+   const url = "/playlistsjson";
+
+   const mainList = document.getElementById("divContainer");
+   Http.open("GET", url);
+   Http.send();
+
+   Http.onreadystatechange = (e) => {
+      if (Http.readyState === XMLHttpRequest.DONE) {
+         playlists = tryParseJSON(Http.responseText);
+         displayPlaylists(playlists);
+      }
+   };
+
+   function handlePlayPause(track, calledByTrackEndedEvent = false) {
+      currentTrack = track; //we need this for track end event
+      let info = document.getElementById("songInfo");
+      info.innerHTML = currentTrack.name;
+      document.title = currentTrack.name;
+
+      //This indicates if the view is displaying previous track's playlist screen
+      let onPreviousTrackScreen = false;
+
+      //This indicates if the view is displaying current (selected) track's playlist screen
+      let onCurrentTrackScreen = currentTrack.listId == selectedPlaylistID;
+
+      let previousTrackInstace = undefined;
+      if (previousTrack != undefined) {
+         //There is previous data
+         //if previousTrack is undefined that means this is the first time for this function so onPreviousTrackScreen is true else is false
+         onPreviousTrackScreen = selectedPlaylistID == previousTrack.listId;
+         previousTrackInstace = getTrackInstace(previousTrack); //We need the instance
+         previousTrackInstace.isPlaying = false; //Previous one wont be playing anymore
+      }
+      currentTrack.isPlaying = true; //We definetely know current track is playing
+      currentTrack.wasPlayed = true; //We also know this.
+
+      if (isSameTrack(previousTrack, currentTrack)) {
+         if (calledByTrackEndedEvent) {
+            player.load(); //This call most probablt a que that two same track in a row.
+         } else {
+            //This is where user pressed pause of the currently playing track
+            let button = document.getElementById(`button${currentTrack.id}`);
+            if (player.paused) {
+               player.play();
+               changePlayPauseSVG(button, true, "yellow");
+               currentTrack.isPlaying = true;
+            } else {
+               player.pause();
+               currentTrack.isPlaying = false;
+               changePlayPauseSVG(button, false, "yellow");
+            }
+         }
+      } else {
+         //if the selected track is not the same track with the previous one we need to change their icons both
+         if (onCurrentTrackScreen) {
+            let button = document.getElementById(`button${currentTrack.id}`);
+            changePlayPauseSVG(button, true, "yellow");
+         }
+
+         if (onPreviousTrackScreen) {
+            //This is the case where current (selected) track from another playlist most probably que call
+            let button = document.getElementById(
+               `button${previousTrack.id}`
+            );
+            changePlayPauseSVG(button, false, "yellow");
+         }
+
+         player.src = `/source_${currentTrack.listId}_${currentTrack.id}`;
+         player.type = "audio/mpeg";
+         player.load();
+         previousTrack = { ...currentTrack }; //Object clone
+      }
+   }
+
+   function trackEnded() {
+      let nextTrack = { ...currentTrack };
+      nextTrack.id++;
+      let nextTrackInstance = getTrackInstace(nextTrack);
+      if (nextTrackInstance != undefined) {
+         handlePlayPause(nextTrackInstance, true);
+      }
+   }
+
+   function createSVG(isPlayButton, color = "black") {
+      const svg1 = document.createElementNS(
+         "http://www.w3.org/2000/svg",
+         "svg"
+      );
+      svg1.setAttribute("width", "50px");
+      svg1.setAttribute("height", "40px");
+      svg1.setAttribute("fill", color);
+      svg1.setAttribute("viewBox", "0 0 16 16");
+
+      const path = document.createElementNS(
+         "http://www.w3.org/2000/svg",
+         "path"
+      );
+
+      let pathString;
+      if (isPlayButton) {
+         pathString =
+            "M10.804 8L5 4.633v6.734L10.804 8zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692z";
+      } else {
+         pathString =
+            "M2.5 11.5A.5.5 0 0 1 3 11h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4A.5.5 0 0 1 3 7h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4A.5.5 0 0 1 3 3h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z";
+         path.setAttributeNS(null, "fill-rule", "evenodd");
+      }
+
+      path.setAttributeNS(null, "d", pathString);
+
+      svg1.appendChild(path);
+
+      return svg1;
+   }
+
+   function changePlayPauseSVG(button, playing, color = "black") {
+      let svg = button.childNodes[0];
+      let path = svg.childNodes[0];
+      svg.setAttribute("fill", color);
+      if (playing) {
+         //lets change it to pause because its playing currently
+         path.setAttributeNS(
+            null,
+            "d",
+            "M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5zm4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5z"
+         );
+      } else {
+         path.setAttributeNS(
+            null,
+            "d",
+            "M10.804 8L5 4.633v6.734L10.804 8zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692z"
+         );
+      }
+   }
+
+   function tryParseJSON(jsonString) {
+      var o;
+      try {
+         o = JSON.parse(jsonString);
+
+         // Handle non-exception-throwing cases:
+         // Neither JSON.parse(false) or JSON.parse(1234) throw errors, hence the type-checking,
+         // but... JSON.parse(null) returns null, and typeof null === "object",
+         // so we must check for that, too. Thankfully, null is falsey, so this suffices:
+         if (o && typeof o === "object") {
+            return o;
+         }
+      } catch (e) { }
+
+      return false;
+   }
+
+   function playlistClicked(item, listId) {
+      mainList.innerText = "";
+      selectedPlaylistID = item.id;
+      item.tracks.forEach((element) => {
+         element.listId = listId;
+
+         let div = document.createElement("div");
+         div.className = "outterDiv";
+
+         let innerDiv = document.createElement("div");
+         innerDiv.innerText = element.name;
+         innerDiv.className = "innerDiv";
+
+         let button = document.createElement("button");
+         button.setAttribute("id", `button${element.id}`);
+
+         button.addEventListener("click", function () {
+            handlePlayPause(element);
+         });
+         button.appendChild(createSVG(true));
+
+         if (element.isPlaying) {
+            changePlayPauseSVG(button, true, "yellow");
+         } else if (element.wasPlayed == true) {
+            changePlayPauseSVG(button, false, "yellow");
+         }
+
+         let division = document.getElementById("divContainer");
+         div.appendChild(button);
+         div.appendChild(innerDiv);
+         division.appendChild(div);
+      });
+   }
+
+   function displayPlaylists(item) {
+      if (item) {
+         selectedPlaylistID = -1; //No playlist selected yet
+         mainList.innerText = "";
+         let id = 0;
+         item.forEach((element, index) => {
+            if (element.tracks.length == 0) {
+               return;
+            }
+
+            let div = document.createElement("div");
+            div.className = "outterDiv";
+
+            let innerDiv = document.createElement("div");
+            innerDiv.innerText = element.name;
+            innerDiv.className = "innerDiv";
+
+            let button = document.createElement("button");
+            button.setAttribute("id", `button${id}`);
+            id++;
+
+            button.addEventListener("click", function () {
+               playlistClicked(element, index);
+            });
+            button.appendChild(createSVG(false));
+
+            div.appendChild(button);
+            div.appendChild(innerDiv);
+            mainList.appendChild(div);
+         });
+      }
+   }
+
+   function isEqual(obj1, obj2) {
+      //Dont use this function for comparing other objects rather than trackInfo class
+      if (obj1 == undefined || obj2 == undefined) {
+         return false;
+      }
+      let keys = Object.keys(obj1);
+      let equal = true;
+      keys.forEach((key) => {
+         if (obj1[key] != obj2[key]) {
+            equal = false;
+            return;
+         }
+      });
+      return equal;
+   }
+
+   function isSameTrack(track1, track2) {
+      if (track1 == undefined || track2 == undefined) {
+         return false;
+      }
+      let keys = ["listId", "id"];
+      let equal = true;
+      keys.forEach((key) => {
+         if (track1[key] != track2[key]) {
+            equal = false;
+            return;
+         }
+      });
+      return equal;
+   }
+
+   function queHandle(item) {
+      if (item.queNumber == undefined) {
+         //First time adding to que
+         item.queNumber = ++queNumber;
+      } else {
+         //if already in que remove it
+         item.queNumber = undefined;
+      }
+   }
+
+   function arrayRemove(arr, value) {
+      return arr.filter(function (ele) {
+         return ele != value;
+      });
+   }
+
+   function getTrackInstace(track) {
+      return playlists[track.listId].tracks[track.id];
+   }
+</script>
+
+</html>

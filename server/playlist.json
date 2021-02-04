@@ -1,0 +1,30 @@
+[
+    {
+        "name": "Some good songs",
+        "path": "D:\\Tracks\\mp3"
+    },
+    {
+        "name": "Jazz House",
+        "path": "D:\\Tracks\\JazzSwingHouse"
+    },
+    {
+        "name": "Mix",
+        "path": "D:\\Tracks\\Mix"
+    },
+    {
+        "name": "Nephilim Bien Tracks",
+        "path": "D:\\Bien\\Tracks"
+    },
+    {
+        "name": "Nephilim Cafe Archy",
+        "path": "D:\\music\\Cafe Archy - Chillout Collection 8 [Chillout][320kbps][2010][PCTrecords.com]"
+    },
+    {
+        "name": "Beatport",
+        "path": "D:\\music\\beatport"
+    },
+    {
+        "name": "Spotify Local",
+        "path": "D:\\Tracks\\SpotifyLocal"
+    }
+]
