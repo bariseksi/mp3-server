@@ -5,6 +5,7 @@ const { Console } = require("console");
 
 const playlistJSONPath = path.join(__dirname, "playlist.json");
 const playerHTMLPath = path.join(__dirname, "..", "client", "player.html");
+const faviconPath = path.join(__dirname, "favicon.png");
 
 class Container {
    constructor(name, path, id) {
@@ -20,13 +21,27 @@ searchingDone = true;
 
 const server = http.createServer((req, res) => {
    if (req.url == "/playlistsjson" && searchingDone) {
-      res.writeHead(200, { "Content-Type": "application/json" });
+      res.writeHead(200, {
+         "Content-Type": "application/json; charset=utf-8",
+         "Cache-Control": "no-cache",
+      });
       res.write(JSON.stringify(playlists));
       res.end();
    } else if (req.url == "/mp3player") {
       const indexHMTL = fs.readFileSync(playerHTMLPath);
-      res.writeHead(200, { "Content-Type": "text/html" });
+      res.writeHead(200, {
+         "Content-Type": "text/html; charset=utf-8",
+         "Cache-Control": "no-cache",
+      });
       res.write(indexHMTL);
+      res.end();
+   } else if (req.url == "/favicon.png") {
+      const buffer = fs.readFileSync(faviconPath);
+      res.writeHead(200, {
+         "Content-Type": "image/png",
+         "Cache-Control": "max-age=31536000, immutable",
+      });
+      res.write(buffer);
       res.end();
    } else if (req.url.search("/source") >= 0) {
       let source = decodeURI(req.url);
