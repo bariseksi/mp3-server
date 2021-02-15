@@ -421,6 +421,9 @@
             buttonRight.appendChild(createSVG(buttonIcons.minus, "yellow"));
          }
       });
+      if (currentTrack) {
+         scroll(currentTrack);
+      }
    }
 
    function displayQueList(queList, updateView) {
@@ -620,6 +623,13 @@
          "id",
          `${buttonPrefix}_${track.listId}_${track.id}`
       );
+   }
+
+   function scroll(track) {
+      let button = getButton(playPauseButtonName, track);
+      if (button) {
+         button.scrollIntoView(true);
+      }
    }
 </script>
 

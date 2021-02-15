@@ -3,7 +3,7 @@ this app finds your mp3 files on your drive and serves as a web player to the de
 
 first you need to edit playlist.json to tell server where your mp3 files are.
 you can add multiple folders and you can name them. On the client side you will see them as a playlists.
-basically this a array of playlists.
+basically this is an array of playlists.
 
 an example of playlist.json file:
 [
