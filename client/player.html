@@ -168,7 +168,6 @@
    let playlists = [];
    let currentView = -1; //0 is a playlist actually
    let que = [];
-   let queNumber = 0;
    let previousList = 0;
 
    const Http = new XMLHttpRequest();
@@ -198,11 +197,10 @@
          if (calledByTrackEndedEvent) {
             player.load(); //This call most probably a que that two same track in a row.
          } else {
-            //This is where user pressed pause of the currently playing track
+            //This is where user pressed pause button of the currently playing track
             let button = getButton(playPauseButtonName, currentTrack);
             if (player.paused) {
                player.play();
-               //changePlayPauseSVG(button, true, "yellow");
                button.innerHTML = "";
                button.appendChild(createSVG(buttonIcons.pause, "yellow"));
                currentTrack.isPlaying = true;
@@ -211,7 +209,6 @@
                button.innerHTML = "";
                button.appendChild(createSVG(buttonIcons.play, "yellow"));
                currentTrack.isPlaying = false;
-               //changePlayPauseSVG(button, false, "yellow");
             }
          }
       } else {
@@ -235,7 +232,7 @@
          player.src = `/source_${currentTrack.listId}_${currentTrack.id}`;
          player.type = "audio/mpeg";
          player.load();
-         previousTrack = { ...currentTrack }; //Object clone thats why we need to use getTrackInstance to manipulate the previous track becuase previous track is a clone not the actault instance
+         previousTrack = { ...currentTrack }; //Object clone thats why we need to use getTrackInstance to manipulate the previous track because previous track is a clone not the actual instance
       }
    }
 
@@ -345,26 +342,6 @@
             break;
       }
       return svg1;
-   }
-
-   function changePlayPauseSVG(button, playing, color = "black") {
-      let svg = button.childNodes[0];
-      let path = svg.childNodes[0];
-      svg.setAttribute("fill", color);
-      if (playing) {
-         //lets change it to pause because its playing currently
-         path.setAttributeNS(
-            null,
-            "d",
-            "M6 3.5a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5zm4 0a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-.5z"
-         );
-      } else {
-         path.setAttributeNS(
-            null,
-            "d",
-            "M10.804 8L5 4.633v6.734L10.804 8zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692z"
-         );
-      }
    }
 
    function tryParseJSON(jsonString) {
@@ -481,7 +458,6 @@
       if (item) {
          queButton.innerHTML = "";
          queButton.appendChild(createSVG(buttonIcons.que, "yellow"));
-         //queButton.style.visibility = "hidden";
          currentView = -1; //No playlist selected yet
          mainList.innerText = "";
          let id = 0;
@@ -504,7 +480,6 @@
             innerDiv.className = "nameDiv";
 
             let button = document.createElement("button");
-            //button.setAttribute("id", `button${id}`);
             id++;
 
             button.addEventListener("click", function () {
@@ -525,7 +500,6 @@
    function createRow(element, buttonDec) {
       let div = document.createElement("div");
       div.className = "outterDiv";
-      //div.setAttribute("id", element.id);
 
       //We need two divs one div include the play button and the name div this div must stay on the left side
       //Other div which will be on the right side only includes the add to que button
@@ -548,7 +522,6 @@
          buttonDec == buttonDecoration.leftright
       ) {
          buttonLeft = document.createElement("button");
-         //button.setAttribute("id", `buttonLeft${element.id}`);
          leftDiv.appendChild(buttonLeft);
       }
 
@@ -559,7 +532,6 @@
          buttonDec == buttonDecoration.leftright
       ) {
          buttonRight = document.createElement("button");
-         //buttonRight.setAttribute("id", `buttonAdd${element.id}`);
 
          rightDiv.appendChild(buttonRight);
       }
@@ -604,12 +576,6 @@
 
    function getTrackInstace(track) {
       return playlists[track.listId].tracks[track.id];
-   }
-
-   function getTrackInstaceFromQue(track) {
-      return que.find((X) => {
-         return X === track;
-      });
    }
 
    function getButton(buttonPrefix, track) {
