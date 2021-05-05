@@ -21,7 +21,7 @@ An example of playlist.json file:
     }
  ]
 ```
-## Seting up the server
+## Setting up the server
  
 After you edit playlist.json file all you need to do is running the server by 
 ```bash
